@@ -110,5 +110,8 @@ dist
 web/*
 !web/js
 
+# Ignore cards
+server/cards
+
 # Randoms
 LOCALTODO
