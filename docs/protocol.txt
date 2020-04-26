@@ -1,0 +1,55 @@
+# Generated on https://sequencediagram.org
+
+fontfamily "Open Sans", sans-serif
+
+participantspacing equal
+participant "Singe client" as C
+participant "Server" as S
+participant "Clients in room" as C2
+
+lifelinecolor #blue
+lifelinecolor S #red
+
+entryspacing 0.5
+
+C-#grey>>S:<<connect>>
+
+S->(1)C:games(games)
+
+space
+box over C,C2:Join Game
+
+C->(1)S:join(gameId, pseudo)
+S->(1)C:joined(localPlayerId, players)
+S->(1)C2:new_player(player)
+
+space
+box over C,C2:Chat message
+
+C->(1)S:message(message, ack)
+S-->(1)C:ack()
+space -2
+S->(1)C2:message(message)
+
+space
+box over C,C2:Starting
+S->(1)C2:start(countdownDuration)
+space -4
+S->(1)C:hand(cards)
+
+space
+box over C,C2:New round
+S->(1)C2:new_round(question, bossPlayerId, \n															countdownDuration)
+C->(1)S:pick_card(cardId)
+space -2
+S->(1)C2:update_state(playerId, state)
+
+space
+box over C,C2:Boss turn
+S->(1)C2:boss_turn(pickedCards, countdownDuration)
+C->(1)S:pick_card(cardId)
+
+space
+box over C,C2:Result
+S->(1)C2:result(winner, countdownDuration)
+S->(1)C2:replace_card(removeId, newCard)
