@@ -1,0 +1,9 @@
+{
+  "countdowns": {
+    "start": 10,
+    "round": 45,
+    "boss_turn": 45,
+    "result": 15
+  },
+  "cards_in_hand": 7
+}

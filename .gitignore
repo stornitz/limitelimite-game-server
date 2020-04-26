@@ -102,3 +102,13 @@ dist
 
 # TernJS port file
 .tern-port
+
+# VS code
+.vscode
+
+# Ignore web folders
+web/*
+!web/js
+
+# Randoms
+LOCALTODO
