@@ -1,16 +1,10 @@
-const Config = require('./config.json');
-const { shuffle, randomInArray } = require('./utils.js');
+const Config = require('../config.json');
+const { shuffle, randomInArray } = require('../utils.js');
 
-const { PlayersManager, PlayerState } = require('./player.js');
+const GameState = require('../enums/game-state.js');
+const PlayerState = require('../enums/player-state.js');
+const PlayersManager = require('./players-manager.js');
 const { Deck, BlackCards, RedCards } = require('./deck.js');
-
-const GameState = {
-  WAITING: 'waiting',
-  STARTING: 'starting',
-  PICKING: 'picking',
-  BOSS_TURN: 'boss_turn',
-  RESULT: 'result'
-};
 
 class Game {
 
@@ -179,6 +173,4 @@ class Game {
   }
 }
 
-module.exports = {
-  Game
-};
+module.exports = Game;

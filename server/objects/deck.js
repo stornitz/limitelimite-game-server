@@ -1,6 +1,6 @@
-const BlackCards = require('./cards/blacks.json');
-const RedCards = require('./cards/reds.json');
-const { shuffle } = require('./utils.js');
+const BlackCards = require('../cards/blacks.json');
+const RedCards = require('../cards/reds.json');
+const { shuffle } = require('../utils.js');
 
 class Deck {
   cards;
@@ -8,7 +8,7 @@ class Deck {
   playedCards = [];
 
   constructor(cards) {
-    // Create Card object with the properties id and text, then shuffle it
+    // Create cards objects with the properties id and text, then shuffle it
     this.cards = shuffle(cards.map((text, id) => {
       return {id, text};
     }));
