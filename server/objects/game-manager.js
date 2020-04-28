@@ -8,11 +8,15 @@ class GameManager {
         this.io = io;
     }
 
-    getGame(key) {
+    getOrCreate(key) {
         if(!(key in this.games)) {
             this.games[key] = new Game(this.io, key);
         }
         return this.games[key];
+    }
+
+    delete(game) {
+        delete this.games[game.id];
     }
 
     getGames() {

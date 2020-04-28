@@ -27,18 +27,17 @@ class Deck {
 
   play(cardId) {
     let index = this.pickedCards.findIndex(card => card.id == cardId);
-    this.playedCards.push(this.pickedCards[index]);
+    let card = this.pickedCards[index];
+    this.playedCards.push(card);
     this.pickedCards.splice(index, 1);
+
+    return card;
   }
 
   pickAndPlay() {
     let card = this.pick();
     this.play(card.id);
     return card;
-  }
-
-  getCard(cardId) {
-    return this.pickedCards.find(card => card.id == cardId);
   }
 }
 

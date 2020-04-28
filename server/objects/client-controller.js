@@ -1,5 +1,4 @@
 const GameManager = require('./game-manager.js');
-const GameState = require('../enums/game-state.js');
 
 class ClientController {
 
@@ -17,26 +16,28 @@ class ClientController {
 
   handleClient(socket) {
     socket.once('join', (gameId, pseudo) => {
-      let game = this.gameManager.getGame(gameId);
-
-      // TODO remove
-      if(game.gameState != GameState.WAITING) {
-          return;
-      }
+      let game = this.gameManager.getOrCreate(gameId);
       
       socket.on('message', (message, ack) => {
           game.sendMessage(socket.id, message);
           ack();
       });
 
-      socket.on('pick_card', (cardId) => {
-          game.pickCard(socket.id, cardId);
+      socket.on('pick_card', (cardId, ack) => {
+          game.pickCard(socket.id, cardId, ack);
       });
 
       game.join(socket, pseudo);
 
       socket.once('disconnect', () => {
-          game.leave(socket.id);
+          game.leave(socket.id).then(playerCount => {
+            if(playerCount == 0) {
+              this.gameManager.delete(game);
+            }
+          });
+
+          // Allow garbage collection
+          socket.removeAllListeners();
       });
     });
 
