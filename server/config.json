@@ -1,9 +1,9 @@
 {
   "countdowns": {
-    "start": 10,
-    "round": 45,
-    "boss_turn": 45,
-    "result": 15
+    "start": 5,
+    "round": 15,
+    "boss_turn": 15,
+    "result": 5
   },
   "cards_in_hand": 7,
   "min_players": 3

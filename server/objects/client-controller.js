@@ -15,24 +15,24 @@ class ClientController {
   }
 
   handleClient(socket) {
-    socket.once('join', (gameId, pseudo) => {
-      let game = this.gameManager.getOrCreate(gameId);
+    socket.once('join', (gameKey, pseudo) => {
+      let game = this.gameManager.getOrCreate(gameKey);
       
-      socket.on('message', (message, ack) => {
+      socket.on('message', (message, ack = () => {}) => {
           game.sendMessage(socket.id, message);
           ack();
       });
 
-      socket.on('pick_card', (cardId, ack) => {
+      socket.on('pick_card', (cardId, ack = () => {}) => {
           game.pickCard(socket.id, cardId, ack);
       });
 
       game.join(socket, pseudo);
 
       socket.once('disconnect', () => {
-          game.leave(socket.id).then(playerCount => {
+          game.leave(socket).then(playerCount => {
             if(playerCount == 0) {
-              this.gameManager.delete(game);
+              this.gameManager.delete(gameKey);
             }
           });
 

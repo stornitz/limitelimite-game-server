@@ -3,8 +3,8 @@ exports.random = (min, max) => Math.floor((Math.random() * max) + min);
 
 exports.randomInArray = (array) => array[this.random(0, array.length)];
 
-exports.removeById = (array, elementId) => {
-  let index = array.find(element => element.id == elementId);
+exports.removeFirst = (array, selectorFct) => {
+  let index = array.findIndex(selectorFct);
   
   if(index != undefined) {
     array.splice(index, 1);

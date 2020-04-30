@@ -1,6 +1,6 @@
 const Player = require('./player.js');
 const PlayerState = require('../enums/player-state.js');
-const { removeById } = require('../utils.js');
+const { removeFirst } = require('../utils.js');
 
 class PlayersManager {
   emitToRoom;
@@ -44,19 +44,18 @@ class PlayersManager {
     this.playersBySocketId[socketId] = newPlayer;
 
     // This will not emit to the newly created player, as he's not in the room yet.
-    // TODO change to player_joined
-    this.emitToRoom('new_player', newPlayer.get());
+    this.emitToRoom('player_joined', newPlayer.get());
 
     return newPlayer;
   }
 
   remove(socketId) {
-    let player = this.playersBySocketId[socketId];
+    let leavingPlayer = this.playersBySocketId[socketId];
     
     delete this.playersBySocketId[socketId];
-    removeById(this.players, player.id);
+    removeFirst(this.players, (player) => player.playerId == leavingPlayer.playerId);
 
-    this.emitToRoom('player_left', player.id);
+    this.emitToRoom('player_left', leavingPlayer.playerId);
 
     return Promise.resolve(this.playerCount);
   }
@@ -65,7 +64,7 @@ class PlayersManager {
     let player = this.playersBySocketId[socketId];
     player.setDisconnected();
     
-    playersToRemove.push(player);
+    this.playersToRemove.push(socketId);
 
     let promise = new Promise((resolve) => {
       // We replace the old pending promise, no longer necessary
@@ -74,14 +73,14 @@ class PlayersManager {
 
     // If we have to remove all players, we can do it now, no need to wait
     if(this.playersToRemove.length == this.players.length) {
-      removeNow();
+      this.removeNow();
     }
     
     return promise;
   }
 
   removeNow() {
-    if(players.playersToRemove.length > 0) {
+    if(this.playersToRemove.length > 0) {
       this.playersToRemove.forEach(this.remove, this);
       this.resolveRemovedPromise(this.playerCount);
       

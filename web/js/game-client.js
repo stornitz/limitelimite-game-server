@@ -3,13 +3,17 @@ function SocketIOClient() {
         socket.emit('message', message, callback);
     }
 
-    this.pickCard = function(cardId) {
+    this.pickCard = function(cardId, callback) {
         socket.emit('pick_card', cardId);
     }
 
     this.joinGame = function(gameId, pseudo) {
         socket.emit('join', gameId, pseudo);
     }
+
+    function updatePlayerState(playerId, state) {
+        Vue.set(vm.players[playerId], 'state', state);
+    };
 
     let socket = io(window.location.protocol + '//' + window.location.host/*, {
         query: {
@@ -26,17 +30,35 @@ function SocketIOClient() {
         vm.games = games;
     });
 
-    socket.on('joined', (localPlayerId, players) => {
+    socket.on('joined', (localPlayerId, players, isSpectating) => {
         vm.localPlayerId = localPlayerId;
         vm.players = players;
+
+        if(isSpectating) {
+            updatePlayerState(localPlayerId, 'spectating');
+            // TODO set spectating mode
+        }
     });
 
-    socket.on('new_player', (player) => {
+    socket.on('player_joined', (player) => {
         Vue.set(vm.players, player.id, player);
+    });
+
+    socket.on('player_left', (playerId) => {
+        Vue.delete(vm.players, playerId);
     });
 
     socket.on('message', (message) => {
         vm.messages.push(message);
+    });
+
+    socket.on('game_state', () => {
+        // TODO implement
+    })
+
+    socket.on('waiting', () => {
+        vm.gameState = 'waiting';
+        Countdown.cancel();
     });
 
     socket.on('start', (countdownDuration) => {
@@ -44,13 +66,7 @@ function SocketIOClient() {
         Countdown.start(countdownDuration);
     });
 
-    socket.on('hand', (cards) => {
-        vm.handCards = cards;
-    });
-
-    socket.on('update_state', (playerId, state) => {
-        Vue.set(vm.players[playerId], 'state', state);
-    });
+    socket.on('update_state', updatePlayerState);
 
     socket.on('new_round', (question, bossPlayerId, countdownDuration) => {
         vm.question = question;
@@ -63,10 +79,8 @@ function SocketIOClient() {
 
         // Reset players state and set boss state
         // Yes, we'll set two times the boss state (once choosing and once boss), but we'll avoid a comparison by players
-        Object.keys(vm.players).forEach(playerId => {
-            Vue.set(vm.players[playerId], 'state', 'choosing');
-        });
-        Vue.set(vm.players[bossPlayerId], 'state', 'boss');
+        Object.keys(vm.players).forEach(playerId => updatePlayerState(playerId, 'choosing'));
+        updatePlayerState(bossPlayerId, 'boss');
 
         Countdown.start(countdownDuration);
     });
@@ -91,9 +105,11 @@ function SocketIOClient() {
         Countdown.start(countdownDuration);
     });
 
-    socket.on('replace_card', (oldCardId, newCard) => {
+    socket.on('fill_hand', (oldCardId, newCards) => {
         let index = vm.handCards.findIndex(card => card.id == oldCardId);
-        Vue.set(vm.handCards, index, newCard);
+
+        vm.handCards.splice(index, 1);
+        vm.handCards.push(...newCards);
     });
 };
 

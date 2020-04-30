@@ -1,7 +1,9 @@
 const STATE_CLASSES = {
     'choosing': 'fa-ellipsis-h',
     'ok': 'fa-check',
-    'boss': 'fa-gavel'
+    'boss': 'fa-gavel',
+    'spectating': 'fa-eye',
+    'disconnected': 'sign-out-alt'
 }
 
 const BLANK_REGEX = /\[BLANK\]/g;
@@ -19,29 +21,17 @@ var vm = new Vue({
             }],
             gameId: null,
             gameState: 'waiting', // waiting => starting => picking => boss_turn => result
-            timeLeft: null,
+            timeLeft: 0,
             localPlayerId: null,
             players: {},
             question: "toto",
             handCards: [],
-            /*{
-                <id>: <text>,
-            },*/
             pickedCards: [],
             selectedCardId: null,
             winner: null,
-            /*{
-                cardId: 2,
-                playerId: 3
-            },*/
             message: null,
             sendingMessage: false,
             messages: []
-                /*[{
-                    author: "author",
-                    colorId: 1,
-                    text: "ceci est un message"
-                }]*/
         }
     },
     filters: {
@@ -103,14 +93,18 @@ var vm = new Vue({
                 this.selectedCardId = null;
             }
 
-            socketClient.pickCard(this.selectedCardId);
+            socketClient.pickCard(this.selectedCardId, () => {
+                // TODO use ack
+            });
         },
         selectWinnerCard: function(cardId) {
             if (this.gameState != 'boss_turn' || !this.localPlayerIsBoss) {
                 return;
             }
 
-            socketClient.pickCard(cardId);
+            socketClient.pickCard(cardId, () => {
+                // TODO use ack
+            });
         },
         getPickedClass: function(cardId) {
             if (this.winner == null || this.winner.cardId != cardId) {
@@ -153,5 +147,9 @@ var Countdown = new (function() {
         
         vm.timeLeft = time;
         setTimeout(countDown, 1000);
+    }
+
+    this.cancel = function() {
+        clearTimeout(countDownTimeout);
     }
 })();

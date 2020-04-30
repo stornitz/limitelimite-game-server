@@ -1,4 +1,4 @@
-const { randomInArray, removeById } = require('../utils.js');
+const { randomInArray, removeFirst } = require('../utils.js');
 const PlayerState = require('../enums/player-state.js');
 
 class Player {
@@ -39,14 +39,6 @@ class Player {
     });
   }
 
-  // TODO remove from client and protocol
-  replaceUsedCard(oldCardId, newCard) {
-    let index = this.hand.findIndex(card => card.id == oldCardId);
-    this.hand[index] = newCard;
-
-    this.emitToSelf('replace_card', oldCardId, newCard);
-  }
-
   // Return true if the card was picked
   pickCard(cardId) {
     if(cardId == this.selectedCardId)
@@ -64,18 +56,18 @@ class Player {
     this.state = PlayerState.WAITING;
 
     if(this.selectedCardId != null) {
-      removeById(this.hand, this.selectedCardId);
+      removeFirst(this.hand, (id) => id == this.selectedCardId);
     }
 
     let newCards = [];
-    while(this.hand.length < maxCardsInHand) {
+    while(this.hand.length + newCards.length < maxCardsInHand) {
       newCards.push(deck.pick());
     }
 
-    hand.push(...newCards);
+    // Add cards id to hand
+    this.hand.push(...newCards.map(card => card.id));
     
     if(newCards.length > 0 || this.selectedCardId != null) {
-      // TODO add to client and protocol
       this.emitToSelf('fill_hand', this.selectedCardId, newCards);
       this.selectedCardId = null;
     }
@@ -101,13 +93,7 @@ class Player {
   }
 
   isSpectating() {
-    return thiss.state == PlayerState.SPECTATING;
-  }
-
-  // TODO remove from client and protocol
-  set cards(cards) {
-    this.hand = cards.map(card => card.id);
-    this.emitToSelf('hand', cards);
+    return this.state == PlayerState.SPECTATING;
   }
 
   get selectedCard() {

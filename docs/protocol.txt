@@ -12,7 +12,7 @@ lifelinecolor S #red
 
 entryspacing 0.5
 
-C-#grey>>S:<<connect>>
+C-#grey>>S:<<connection>>
 
 S->(1)C:games(games)
 
@@ -20,36 +20,54 @@ space
 box over C,C2:Join Game
 
 C->(1)S:join(gameId, pseudo)
-S->(1)C:joined(localPlayerId, players)
-S->(1)C2:new_player(player)
+S->(1)C:joined(localPlayerId, players, isSpectating)
+S->(1)C2:player_joined(player)
+
+note over S:If already in game
+S->(1)C:game_state(gameState, countdown, blackCardText, pickedCards, winner)
 
 space
 box over C,C2:Chat message
 
 C->(1)S:message(message, ack)
-S-->(1)C:ack()
-space -2
 S->(1)C2:message(message)
+space -2
+S-->(1)C:ack()
 
 space
 box over C,C2:Starting
 S->(1)C2:start(countdownDuration)
-space -4
-S->(1)C:hand(cards)
-
 space
 box over C,C2:New round
+S->(1)C2:fill_hand(removeId, newCards)
 S->(1)C2:new_round(question, bossPlayerId, \n															countdownDuration)
 C->(1)S:pick_card(cardId)
+S-->(1)C:ack()
 space -2
 S->(1)C2:update_state(playerId, state)
+
+note over S:If no card picked
+S->(1)C:picked_card(cardId)
 
 space
 box over C,C2:Boss turn
 S->(1)C2:boss_turn(pickedCards, countdownDuration)
 C->(1)S:pick_card(cardId)
+S-->(1)C:ack()
 
 space
 box over C,C2:Result
 S->(1)C2:result(winner, countdownDuration)
-S->(1)C2:replace_card(removeId, newCard)
+
+space
+box over C,C2:Waiting
+S->(1)C2:waiting()
+
+space 
+box over C,C2:Disconnection
+
+C-#grey>>S:<<disconnect>>
+note over S:If the player is in\na running game
+S->(1)C2:update_state(playerId, 'disconnected')
+note over S:If the player is in a game
+S->(1)C2:player_left(playerId)

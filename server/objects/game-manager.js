@@ -15,8 +15,8 @@ class GameManager {
         return this.games[key];
     }
 
-    delete(game) {
-        delete this.games[game.id];
+    delete(gameKey) {
+        delete this.games[gameKey];
     }
 
     getGames() {

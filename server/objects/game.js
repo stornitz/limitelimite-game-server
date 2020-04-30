@@ -1,3 +1,5 @@
+var moment = require('moment');
+
 const Config = require('../config.json');
 const { shuffle, randomInArray } = require('../utils.js');
 
@@ -5,6 +7,7 @@ const GameState = require('../enums/game-state.js');
 const PlayersManager = require('./players-manager.js');
 const { Deck, BlackCards, RedCards } = require('./deck.js');
 
+// TODO rename Game to Room for better understanding
 class Game {
 
   io;
@@ -17,6 +20,11 @@ class Game {
   gameState = GameState.WAITING;
   redDeck = new Deck(RedCards);
   blackDeck = new Deck(BlackCards);
+
+  gameStateParameters = [];
+
+  gameTimeout = null;
+  gameTimeoutEnd = null;
 
   pickedCards = [];
 
@@ -38,11 +46,10 @@ class Game {
     let newPlayer = this.playersManager.create(socket.id, pseudo, isSpectating);
     
     socket.join(this.gameKey);
-    // TODO update protocol&client to add isSpectating
     socket.emit('joined', newPlayer.playerId, this.playersManager.getPlayersByPlayerId(), isSpectating);
   
     if(this.gameState != GameState.WAITING) {
-      // TODO send game state
+      this.sendGameState(socket);
     }
 
     return newPlayer;
@@ -68,20 +75,40 @@ class Game {
     return removePromise;
   }
 
+  sendGameState(socket) {
+    let remainingCountDown = null;
+
+    if(this.gameTimeoutEnd != null) {
+      remainingCountDown = this.gameTimeoutEnd.diff(moment(), 'seconds');
+    }
+
+    socket.emit('game_state', this.gameState, remainingCountDown, ...gameStateParameters);
+  }
+
+  setTimer(fct, countdown) {
+    this.gameTimeout = setTimeout(() => {
+      // Reset the timeout
+      this.gameTimeoutEnd = null;
+      fct();
+    }, countdown*1000);
+
+    this.gameTimeoutEnd = moment().add(countdown, 'seconds');
+  }
+
   async wait() {
     clearTimeout(this.gameTimeout);
     this.gameState = GameState.WAITING;
-    this.emitToRoom('waiting', Config.countdowns.start);
+    this.emitToRoom('waiting');
   }
 
   async start() {
     this.gameState = GameState.STARTING;
     this.emitToRoom('start', Config.countdowns.start);
 
-    this.gameTimeout = setTimeout(() => {
+    this.setTimer(() => {
       let startingPlayer = randomInArray(this.playersManager.players);
       this.newRound(startingPlayer);
-    }, Config.countdowns.start*1000);
+    }, Config.countdowns.start);
   }
   
   async newRound(bossPlayer) {
@@ -98,36 +125,47 @@ class Game {
       return;
     }
 
+    // Reset game state parameters
+    this.gameStateParameters = [];
+
     // Reset player state and cards (pick new cards if needed)
     this.playersManager.players.forEach(player => player.setToNewRoundState(this.redDeck, Config.cards_in_hand));
     bossPlayer.setBoss();
 
-    // This will reset local interface variables
-    this.emitToRoom('new_round', this.blackDeck.pickAndPlay().text, this.bossPlayerId, Config.countdowns.round);
+    let blackCard = this.blackDeck.pickAndPlay().text;
 
-    this.gameTimeout = setTimeout(() => {
+    // Save for eventual joining spectators
+    this.gameStateParameters.push(blackCard);
+
+    // This will reset local interface variables
+    this.emitToRoom('new_round', blackCard, this.bossPlayerId, Config.countdowns.round);
+
+    this.setTimer(() => {
       this.bossTurn();
-    }, Config.countdowns.round*1000);
+    }, Config.countdowns.round);
   }
 
   async bossTurn() {
     clearTimeout(this.gameTimeout);
     this.gameState = GameState.BOSS_TURN;
 
-    this.pickedCards = this.playersManager.pickingPlayers
+    this.pickedCards = shuffle(this.playersManager.pickingPlayers
       .map(player => ({
         player: player,
         cardId: player.selectedCard
-      }));
+      })));
 
     // Play and get the cards text, then shuffle the card to remove any picking order
-    let emittedCards = shuffle(this.pickedCards.map(card => this.redDeck.play(card.cardId)))
+    let emittedCards = this.pickedCards.map(card => this.redDeck.play(card.cardId));
+
+    // Save for eventual joining spectators
+    this.gameStateParameters.push(emittedCards);
 
     this.emitToRoom('boss_turn', emittedCards, Config.countdowns.boss_turn);
 
-    this.gameTimeout = setTimeout(() => {
+    this.setTimer(() => {
       this.result(null);
-    }, Config.countdowns.boss_turn*1000);
+    }, Config.countdowns.boss_turn);
   }
 
   async result(winCard = null) {
@@ -141,14 +179,19 @@ class Game {
     // Increment winner score
     winCard.player.score++;
 
-    this.emitToRoom('result', {
+    let winner = {
       cardId: winCard.cardId,
       playerId: winCard.player.playerId
-    }, Config.countdowns.result);
+    };
 
-    this.gameTimeout = setTimeout(() => {
+    // Save for eventual joining spectators
+    this.gameStateParameters.push(winner);
+
+    this.emitToRoom('result', winner, Config.countdowns.result);
+
+    this.setTimer(() => {
       this.newRound(winCard.player);
-    }, Config.countdowns.result*1000);
+    }, Config.countdowns.result);
   }
 
   sendMessage(socketId, message) {
@@ -187,7 +230,7 @@ class Game {
   }
 
   get playersCount() {
-    return this.playersManager.lastPlayerId;
+    return this.playersManager.playerCount;
   }
 }
 

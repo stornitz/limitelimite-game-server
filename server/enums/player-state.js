@@ -2,7 +2,8 @@ const PlayerState = {
   CHOOSING: 'choosing',
   PICKED: 'ok',
   BOSS: 'boss',
-  SPECTATING: 'spectating'
+  SPECTATING: 'spectating',
+  DISCONNECTED: 'disconnected'
 };
 
 module.exports = PlayerState;
